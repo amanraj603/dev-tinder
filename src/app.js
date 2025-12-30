@@ -19,6 +19,39 @@ app.post('/signup', async(req, res) => {
   }
 });
 
+app.get('/feed', async(req, res) => {
+  // Fetching all users except the one making the request
+  try {
+    const allUser = await User.find({});
+    res.send(allUser);
+  } catch (error) {
+    res.status(500).send("Error fetching users: " + error.message);
+  }
+});
+
+app.delete('/user', async(req, res) => {
+  try {
+    const deletedUser = await User.deleteOne(req.body);
+    console.log(deletedUser);
+    res.status(200).send(`User with id ${req.body} deleted successfully`);
+  } catch (error) {
+    res.status(500).send("Error while deleting users: " + error.message);
+  }
+});
+
+app.patch('/user', async(req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    const user = await User.findByIdAndUpdate(userId, data, {
+      runValidators: true
+    })
+    res.status(200).send("User updated successfully");
+  } catch (error) {
+    res.status(500).send("Error while Updating users: " + error.message);
+  }
+})
+
 app.get('/', (req, res) => {
   res.send('Welcome to Dev Tinder!');
 });

@@ -16,7 +16,7 @@ app.post('/signup', async(req, res) => {
 
     // Encrypt the password
     const passwordHash = await bcrypt.hash(password, 10);
-    
+
     // Creating a new instance of User model
     const newUser = new User({
       firstName,
@@ -30,6 +30,26 @@ app.post('/signup', async(req, res) => {
     res.status(400).send("Error registering user :" + error.message);
   }
 });
+
+app.post('/login', async(req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    const user = await User.findOne({ emailId: emailId });
+    if(!user){
+      throw new Error("User not found");
+    }
+    
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if(!isPasswordMatch){
+      throw new Error("Invalid credentials");
+    }
+    res.status(200).send("Login Successful");
+    
+  } catch (error) {
+    res.status(400).send("ERROR : " + error.message);
+  }
+})
 
 app.get('/feed', async(req, res) => {
   // Fetching all users except the one making the request

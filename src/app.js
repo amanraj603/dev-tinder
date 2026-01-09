@@ -5,6 +5,7 @@ const valideteSignupData = require('./utils/validationFunc');
 const bcrypt = require('bcrypt');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const userAuth = require('./middlewares/auth');
 
 // Initialize Express app
 const app = express();
@@ -53,7 +54,7 @@ app.post('/login', async(req, res) => {
     }
 
     // create JWT token
-    const token = jwt.sign({ userId: user._id }, "DEV@TINDER$790");
+    const token = jwt.sign({ userId: user._id }, "DEV@TINDER$790", { expiresIn: "1d" });
     
     // Add JWT token to cookie and send response back to client
     res.cookie("token", token);
@@ -64,19 +65,9 @@ app.post('/login', async(req, res) => {
   }
 })
 
-app.get('/profile', async(req, res) => {
+app.get('/profile', userAuth, async(req, res) => {
   try {
-    // verify token
-    const {token} = req.cookies;
-    if(!token){
-      throw new Error("Token not present");
-    }
-    const decodedMsg = jwt.verify(token, "DEV@TINDER$790");
-    // fetch user data
-    const user = await User.findById(decodedMsg.userId);
-    if(!user){
-      throw new Error("User not found");
-    }
+    const user = req.user;
     res.status(200).send(user);
   } catch (error) {
     res.status(500).send("Error fetching profile: " + error.message);
@@ -127,6 +118,12 @@ app.patch('/user/:userId', async(req, res) => {
     res.status(500).send("Error while Updating users: " + error.message);
   }
 })
+
+app.post('/send-connection-request', userAuth, async(req, res) => {
+  const user = req.user;
+
+  res.send(`${user.firstName} Send connection request`);
+});
 
 app.get('/', (req, res) => {
   res.send('Welcome to Dev Tinder!');

@@ -3,8 +3,15 @@ const connectDB = require('./config/database');
 const User = require('./models/user');
 const valideteSignupData = require('./utils/validationFunc');
 const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+
+// Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cookieParser());
 app.use(express.json());
 
 app.post('/signup', async(req, res) => {
@@ -44,12 +51,37 @@ app.post('/login', async(req, res) => {
     if(!isPasswordMatch){
       throw new Error("Invalid credentials");
     }
+
+    // create JWT token
+    const token = jwt.sign({ userId: user._id }, "DEV@TINDER$790");
+    
+    // Add JWT token to cookie and send response back to client
+    res.cookie("token", token);
     res.status(200).send("Login Successful");
     
   } catch (error) {
     res.status(400).send("ERROR : " + error.message);
   }
 })
+
+app.get('/profile', async(req, res) => {
+  try {
+    // verify token
+    const {token} = req.cookies;
+    if(!token){
+      throw new Error("Token not present");
+    }
+    const decodedMsg = jwt.verify(token, "DEV@TINDER$790");
+    // fetch user data
+    const user = await User.findById(decodedMsg.userId);
+    if(!user){
+      throw new Error("User not found");
+    }
+    res.status(200).send(user);
+  } catch (error) {
+    res.status(500).send("Error fetching profile: " + error.message);
+  }
+});
 
 app.get('/feed', async(req, res) => {
   // Fetching all users except the one making the request

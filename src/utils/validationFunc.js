@@ -14,4 +14,10 @@ const valideteSignupData = (req) => {
     }
 }
 
-module.exports = valideteSignupData;
+const validateEditProfileData = (req) => {
+    const notAllowedToEdit = ["emailId"];
+    const hasNotAllowedField = Object.keys(req.body).some(field => notAllowedToEdit.includes(field));
+    return hasNotAllowedField ? false : true;
+}
+
+module.exports = { valideteSignupData, validateEditProfileData };

@@ -1,11 +1,6 @@
 const express = require('express');
 const connectDB = require('./config/database');
-const User = require('./models/user');
-const valideteSignupData = require('./utils/validationFunc');
-const bcrypt = require('bcrypt');
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const userAuth = require('./middlewares/auth');
 
 // Initialize Express app
 const app = express();
@@ -15,64 +10,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cookieParser());
 app.use(express.json());
 
-app.post('/signup', async(req, res) => {
-  try {
-    // Validation of data
-    valideteSignupData(req);
-    
-    const { firstName, lastName, emailId, password } = req.body;
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
+const requestsRouter = require('./routes/request');
+const userRouter = require('./routes/user');
 
-    // Encrypt the password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Creating a new instance of User model
-    const newUser = new User({
-      firstName,
-      lastName,
-      emailId,
-      password: passwordHash
-    });
-    await newUser.save();
-    res.send("User Registered Successfully");
-  } catch (error) {
-    res.status(400).send("Error registering user :" + error.message);
-  }
-});
-
-app.post('/login', async(req, res) => {
-  try {
-    const { emailId, password } = req.body;
-
-    const user = await User.findOne({ emailId: emailId });
-    if(!user){
-      throw new Error("User not found");
-    }
-    
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-    if(!isPasswordMatch){
-      throw new Error("Invalid credentials");
-    }
-
-    // create JWT token
-    const token = jwt.sign({ userId: user._id }, "DEV@TINDER$790", { expiresIn: "1d" });
-    
-    // Add JWT token to cookie and send response back to client
-    res.cookie("token", token);
-    res.status(200).send("Login Successful");
-    
-  } catch (error) {
-    res.status(400).send("ERROR : " + error.message);
-  }
-})
-
-app.get('/profile', userAuth, async(req, res) => {
-  try {
-    const user = req.user;
-    res.status(200).send(user);
-  } catch (error) {
-    res.status(500).send("Error fetching profile: " + error.message);
-  }
-});
+app.use('/', profileRouter);
+app.use('/', authRouter);
+app.use('/', requestsRouter);
+app.use('/', userRouter);
 
 app.get('/feed', async(req, res) => {
   // Fetching all users except the one making the request
@@ -118,12 +64,6 @@ app.patch('/user/:userId', async(req, res) => {
     res.status(500).send("Error while Updating users: " + error.message);
   }
 })
-
-app.post('/send-connection-request', userAuth, async(req, res) => {
-  const user = req.user;
-
-  res.send(`${user.firstName} Send connection request`);
-});
 
 app.get('/', (req, res) => {
   res.send('Welcome to Dev Tinder!');
